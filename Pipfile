@@ -1,0 +1,22 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+python3-8 = "*"
+python = "*"
+3-7 = "*"
+python3-7 = "*"
+3-8 = "*"
+flask = "*"
+flask-sqlalchemy = "*"
+flask-migrate = "*"
+python-dotenv = "*"
+requests = "*"
+spotipy = "*"
+
+[requires]
+python_version = "3.8"
