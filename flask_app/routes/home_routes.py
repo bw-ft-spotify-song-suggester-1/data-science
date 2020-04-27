@@ -11,25 +11,30 @@ def index():
     x = 2 + 2
     return f"The party starts here on {x}"
 
-
-@home_routes.route("/albums")
-def birdy_albums():
+@home_routes.route("/artist")
+def artist_profile():
     sp = spotify_api_client()
-    track = []
-    tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
-    track.append(tracky_uri)
-    results = sp.audio_features(tracks=track)
+    artist_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
+    results = sp.artist(artist_id=artist_uri)
     return results
-    #  sp = spotify_api_client()
-    # birdy_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
-    # results = sp.artist(artist_id=birdy_uri)
-    # return results
-    # results = sp.artist_albums(artist_id=birdy_uri, album_type='album')
-    # albums = results['items']
-    # while results['next']:
-    #     results = spotify.next(results)
-    #     albums.extend(results['items'])
 
-    # for album in albums:
-    #     return(album['name'])
+@home_routes.route("/audio-features")
+def audio_feat():
+    sp = spotify_api_client()
+    tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
+    results = sp.audio_features(tracks=tracky_uri)
+    for r in results:
+        return jsonify(r)
 
+@home_routes.route("/album-list")
+def album_list():
+    sp = spotify_api_client()
+    birdy_uri ='spotify:artist:2WX2uTcsvV5OnS0inACecP'
+    results = sp.artist_albums(artist_id=birdy_uri, album_type='album')
+    albums = results['items']
+    while results['next']:
+        results = sp.next(results)
+        albums.extend(results['items'])
+
+    for album in albums:
+        return(album['name'])
