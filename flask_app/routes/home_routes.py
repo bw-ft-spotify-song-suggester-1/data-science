@@ -12,6 +12,9 @@ def index():
 
 @home_routes.route("/artist")
 def artist_profile():
+    """
+    Get artist from spotify with the assigned uri.
+    """
     sp = spotify_api_client()
     artist_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
     results = sp.artist(artist_id=artist_uri)
@@ -19,6 +22,10 @@ def artist_profile():
 
 @home_routes.route("/audio-features")
 def audio_feat():
+    """
+    Get audio features for a given track uri.
+    """
+
     sp = spotify_api_client()
     tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
     results = sp.audio_features(tracks=tracky_uri)
@@ -27,6 +34,10 @@ def audio_feat():
 
 @home_routes.route("/album-list")
 def album_list():
+    """
+    Get list of albums for a given artist uri.
+    """
+
     sp = spotify_api_client()
     birdy_uri ='spotify:artist:2WX2uTcsvV5OnS0inACecP'
     results = sp.artist_albums(artist_id=birdy_uri, album_type='album')
@@ -39,9 +50,15 @@ def album_list():
         return(album['name'])
 
 
-# sample id: 6rqhFgbbKwnb9MLmUQDhG6
 @home_routes.route("/recommendations/<id>")
 def recs_from_id(id):
+    """
+    Takes in a spotify song ID and returns a list of recommended tracks
+    as a JSON object using the built-in spotipy recommendations method.
+    """
+
+    # sample song id: 6rqhFgbbKwnb9MLmUQDhG6
+
     sp = spotify_api_client()
 
     # get the track object based on the input id
@@ -54,57 +71,39 @@ def recs_from_id(id):
     # for item in input_track:
     #     print(item)
 
-    recommendations = sp.recommendations(seed_artist=[artist_uri], seed_tracks=[id])['tracks']
+    recommendations = sp.recommendations(seed_artist=[artist_uri], 
+        seed_tracks=[id])['tracks']
 
     # # Enable code to print list of recommended tracks
-    # print('\ntracks')
+    # print('\n recommended tracks')
     # i=1
-    # for item in recommendations['tracks']:
+    # for item in recommendations:
     #     print(i, item, '\n')
     #     i+=1
-
-
-    return recommendations
-
-@home_routes.route("/recommendations", methods=['POST'])
-def builtin_recs_blah():
     
+    return jsonify(recommendations)
+
+@home_routes.route("/recommendations/json", methods=['POST'])
+def recs_from_json():
+    """
+    Takes in a spotify track object from a POST request and returns a 
+    list of recommended tracks as a JSON object using the built-in spotipy 
+    recommendations method.
+    """
+
     sp = spotify_api_client()
-    #input_track = sp.track(id)
+
+    if not request.json:
+        return jsonify({"error": "no request received"})
 
     input_track = request.get_json()
 
-    """
-    print("\n\n")
-    for item in input_track:
-        print(item)
-    print("\n\n")
-    """
-
-    # use this to see list of valid genres
-    #sp.recommendation_genre_seeds()
-
-    
-    #print('\n',input_track['artists'][0]['uri'], '\n')
+    # get the artist uri and track id
     artist_uri = input_track['artists'][0]['uri']
     track_id = input_track['id']
     
-    recommendations = sp.recommendations(seed_artist=[artist_uri], seed_tracks=[track_id])
-    # i=1
-    # for item in recommendations:
-    #     print(i, item)
-    #     i+=1
-    
-    print('\ntracks')
-    i=1
-    for item in recommendations['tracks']:
-        print(i, item, '\n')
-        i+=1
+    # use built-in recommendations method to get a list of recommended track objects
+    recommendations = sp.recommendations(seed_artist=[artist_uri], 
+        seed_tracks=[track_id])['tracks']
 
-    # print("\nSeeds")
-    # i=1
-    # for item in recommendations['seeds']:
-    #     print(i, item)
-    #     i+=1
-
-    return recommendations
+    return jsonify(recommendations)
