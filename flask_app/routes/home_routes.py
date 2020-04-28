@@ -8,8 +8,7 @@ home_routes = Blueprint("home_routes", __name__)
 
 @home_routes.route("/")
 def index():
-    x = 2 + 2
-    return f"The party starts here on {x}"
+    return "Spotify song suggester"
 
 @home_routes.route("/artist")
 def artist_profile():
@@ -38,3 +37,74 @@ def album_list():
 
     for album in albums:
         return(album['name'])
+
+
+# sample id: 6rqhFgbbKwnb9MLmUQDhG6
+@home_routes.route("/recommendations/<id>")
+def recs_from_id(id):
+    sp = spotify_api_client()
+
+    # get the track object based on the input id
+    input_track = sp.track(id)
+
+    # get artist uri from the track object
+    artist_uri = input_track['artists'][0]['uri']
+
+    # # check contents of input track
+    # for item in input_track:
+    #     print(item)
+
+    recommendations = sp.recommendations(seed_artist=[artist_uri], seed_tracks=[id])['tracks']
+
+    # # Enable code to print list of recommended tracks
+    # print('\ntracks')
+    # i=1
+    # for item in recommendations['tracks']:
+    #     print(i, item, '\n')
+    #     i+=1
+
+
+    return recommendations
+
+@home_routes.route("/recommendations", methods=['POST'])
+def builtin_recs_blah():
+    
+    sp = spotify_api_client()
+    #input_track = sp.track(id)
+
+    input_track = request.get_json()
+
+    """
+    print("\n\n")
+    for item in input_track:
+        print(item)
+    print("\n\n")
+    """
+
+    # use this to see list of valid genres
+    #sp.recommendation_genre_seeds()
+
+    
+    #print('\n',input_track['artists'][0]['uri'], '\n')
+    artist_uri = input_track['artists'][0]['uri']
+    track_id = input_track['id']
+    
+    recommendations = sp.recommendations(seed_artist=[artist_uri], seed_tracks=[track_id])
+    # i=1
+    # for item in recommendations:
+    #     print(i, item)
+    #     i+=1
+    
+    print('\ntracks')
+    i=1
+    for item in recommendations['tracks']:
+        print(i, item, '\n')
+        i+=1
+
+    # print("\nSeeds")
+    # i=1
+    # for item in recommendations['seeds']:
+    #     print(i, item)
+    #     i+=1
+
+    return recommendations
