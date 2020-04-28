@@ -10,45 +10,6 @@ home_routes = Blueprint("home_routes", __name__)
 def index():
     return "Spotify song suggester"
 
-@home_routes.route("/artist")
-def artist_profile():
-    """
-    Get artist from spotify with the assigned uri.
-    """
-    sp = spotify_api_client()
-    artist_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
-    results = sp.artist(artist_id=artist_uri)
-    return results
-
-@home_routes.route("/audio-features")
-def audio_feat():
-    """
-    Get audio features for a given track uri.
-    """
-
-    sp = spotify_api_client()
-    tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
-    results = sp.audio_features(tracks=tracky_uri)
-    for r in results:
-        return jsonify(r)
-
-@home_routes.route("/album-list")
-def album_list():
-    """
-    Get list of albums for a given artist uri.
-    """
-
-    sp = spotify_api_client()
-    birdy_uri ='spotify:artist:2WX2uTcsvV5OnS0inACecP'
-    results = sp.artist_albums(artist_id=birdy_uri, album_type='album')
-    albums = results['items']
-    while results['next']:
-        results = sp.next(results)
-        albums.extend(results['items'])
-
-    for album in albums:
-        return(album['name'])
-
 
 @home_routes.route("/recommendations/<id>")
 def recs_from_id(id):
@@ -67,10 +28,6 @@ def recs_from_id(id):
     # get artist uri from the track object
     artist_uri = input_track['artists'][0]['uri']
 
-    # # check contents of input track
-    # for item in input_track:
-    #     print(item)
-
     recommendations = sp.recommendations(seed_artist=[artist_uri], 
         seed_tracks=[id])['tracks']
 
@@ -82,6 +39,7 @@ def recs_from_id(id):
     #     i+=1
     
     return jsonify(recommendations)
+
 
 @home_routes.route("/recommendations/json", methods=['POST'])
 def recs_from_json():
@@ -96,7 +54,7 @@ def recs_from_json():
     if not request.json:
         return jsonify({"error": "no request received"})
 
-    input_track = request.get_json()
+    input_track = request.get_json(force=True)
 
     # get the artist uri and track id
     artist_uri = input_track['artists'][0]['uri']
@@ -107,3 +65,16 @@ def recs_from_json():
         seed_tracks=[track_id])['tracks']
 
     return jsonify(recommendations)
+
+
+@home_routes.route("/audio-features")
+def audio_feat():
+    """
+    Get audio features for a given track uri.
+    """
+
+    sp = spotify_api_client()
+    tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
+    results = sp.audio_features(tracks=tracky_uri)
+    for r in results:
+        return jsonify(r)
