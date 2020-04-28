@@ -1,5 +1,6 @@
 # web_app/routes/home_routes.py
-
+import gunicorn 
+import psycopg2
 from flask import Blueprint, request, jsonify
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_app.services.spotify_service import spotify_api_client
