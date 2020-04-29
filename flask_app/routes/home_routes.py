@@ -113,8 +113,21 @@ def audio_feat():
 
 @home_routes.route("/get_track/<id>")
 def get_track(id):
+    """get track object for the given id"""
     sp = spotify_api_client()
-    return sp.track(id)
+    track = sp.track(id)
+
+
+    # crap for looking at the format for track objects
+    for key in track:
+        print("\n", track)
+
+        if key.isint()==False:
+            for subkey in track[key]:
+                print(subkey)
+
+
+    return track
 
 def get_features(input_track):
     """
@@ -206,7 +219,25 @@ def get_recommendations(track_df):
       recs_uris.append(spotify_songs_df_uris[uri])
       print(spotify_songs_df_uris[uri])
 
+
+
+
+    """
+    DELETE THIS CRAPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+    """
+    #   track_object=sp.track(uri)
+    #   track_object2=sp.audio_features(uri)
+    #   print("Artist", track_object['artists'][0]['name'])
+    #   print("Name", track_object2["name"])
+
+
+
     # Get JSON of the full Spotify API "track objects" for the songs:
     recs = sp.tracks(recs_uris)
+
+    #input_track_object = spotify.track(input_track_id)
+    #input_track_object['artists'][0]['name']
+
+
 
     return recs
