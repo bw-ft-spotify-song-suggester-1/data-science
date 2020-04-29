@@ -16,6 +16,8 @@ Install pipenv with the following packages:
 * spotipy
 * psycopg2-binary
 * pandas
+* joblib
+* sklearn
 
 ## Setup
 Create a .env file to store the Spotify Api Client ID and the Client Secret.

@@ -5,6 +5,8 @@ import pandas as pd
 from flask import Blueprint, request, jsonify
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_app.services.spotify_service import spotify_api_client
+from joblib import dump, load
+from sklearn import preprocessing
 
 home_routes = Blueprint("home_routes", __name__)
 
@@ -42,6 +44,7 @@ def recs_from_id(id):
     
     return jsonify(recommendations)
 
+
 @home_routes.route("/recommendations/json", methods=['POST'])
 def recs_from_json():
     """
@@ -52,13 +55,21 @@ def recs_from_json():
 
     sp = spotify_api_client()
 
+    # Check if we got a json object. If we do, assign it to "input_track"
     if not request.json:
         return jsonify({"error": "no request received"})
-
+    
     input_track = request.get_json(force=True)
 
+    # Get the track features needed for the ML model
     input_df = get_features(input_track)
 
+    print("\ninput track dataframe")
+    print(input_df.head())
+
+    # Get recommendations
+    recommendations = get_recommendations(input_df)
+    
     return jsonify(recommendations)
 
 
@@ -100,10 +111,11 @@ def audio_feat():
     for r in results:
         return jsonify(r)
 
+@home_routes.route("/get_track/<id>")
+def get_track(id):
+    sp = spotify_api_client()
+    return sp.track(id)
 
-# sample song id: 6rqhFgbbKwnb9MLmUQDhG6
-
-# get the model parameters for a given track
 def get_features(input_track):
     """
     Takes a JSON track object, and returns a dataframe containing the features
@@ -129,12 +141,72 @@ def get_features(input_track):
     features = {key: audio_features[key] for key in keys}
 
     # add the audio analysis features
-    features["sections"] = sections
     features["chorus_hit"] = chorus_hit
+    features["sections"] = sections
 
+    # convert to dataframe object
     df = pd.DataFrame(features, index=[0])
 
     return df
 
-#["danceability" ,"energy" ,"key" ,"loudness" ,"mode" ,"speechiness" ,"acousticness" ,"instrumentalness" ,"liveness" ,"valence" ,"tempo" ,"duration_ms" ,"time_signature"]
 
+def get_40k_spotify_songs():
+    """
+    Function to get and return a dataset of 40k Spotify songs, so we can
+    use our k-NN model to pick which Spotify songs to recommend to the user:
+    """
+
+    # Get data (all):
+    dataset00 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFqeUFGZwH52bU-IepHfp2xRD3A0asGpGJRd3jaJYA4PwAmUju-5CmnepyBAvc64rY6gXwn2nUQG0e/pub?output=csv')
+    dataset10 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-Sc2ksuQCaZmH_Hy90bhCCP13AOVlBFAMRNwVYgEcT3RO-0UimxD9Loi5KVDOnurxvBoteW-whOWp/pub?output=csv')
+    dataset60 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vTPxGmOZVXdAYr2D5_ml_3YRXorUVarxlTQ4bYzews8YXWSY8ArdFAyxffvm8gmI-FxMr_8vJtCK_Y-/pub?output=csv')
+    dataset70 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vTINdcUA6cKJyHJS76NrcXPLbX_jFjt5S4pNIdAKw-4GF1w8ngBeorLrAPEYxSqgnxE9MybmzQ9NYXK/pub?output=csv')
+    dataset80 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5LNcY8trkxu8vIJHf8Ha0vDO9Xz2k2M7UCdEGhaJxz9vnB_SqET9fy88icZwIjPKeK8USi05_0zii/pub?output=csv')
+    dataset90 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFUiB5RX_2qMQuZSuP-u_wQvjqlaSOTeKY4uGjwfeoGTgZUCesq46xlYjLqi4vmN-VQ4zK0Zm-jXmw/pub?output=csv')
+
+    frames = [dataset60, dataset70, dataset80, dataset90, dataset00, dataset10]
+    spotify_songs_df = pd.concat(frames, ignore_index=True)
+
+    spotify_songs_df = spotify_songs_df.drop(['target'], axis=1)
+    spotify_songs_df = spotify_songs_df.drop_duplicates("uri")
+
+    spotify_songs_df_uris = spotify_songs_df['uri']
+
+    return spotify_songs_df, spotify_songs_df_uris
+
+
+def get_recommendations(track_df):
+    sp = spotify_api_client()
+
+    # Get dataset of Spotify songs for kNN:
+    spotify_songs_df, spotify_songs_df_uris = get_40k_spotify_songs()
+    X_train = spotify_songs_df.drop(['track', 'artist',  'uri'], axis=1)
+
+    # Instantiate our scaler for standardizing data (z-scores):
+    scaler = preprocessing.StandardScaler().fit(X_train)
+
+    # Array of only the values of input_track_df_ordered:
+    input_values_only = track_df.loc[0].values
+
+    # # Standardize (z-scores) our input values before inputting into model:
+    input_values_only = scaler.transform([input_values_only])
+
+    # Load our ML model from compressed joblib file:
+    model_knn = load('model.joblib')
+
+    # Get recommended songs from our model:
+    output_values, output_uris = model_knn.kneighbors(input_values_only)
+    output_values = output_values[0]
+    output_uris = output_uris[0]
+
+    # List of Spotify URIs for the songs our model recommended
+    # (to query the Spotify API --> get their full track objects):
+    recs_uris = []
+    for uri in output_uris:
+      recs_uris.append(spotify_songs_df_uris[uri])
+      print(spotify_songs_df_uris[uri])
+
+    # Get JSON of the full Spotify API "track objects" for the songs:
+    recs = sp.tracks(recs_uris)
+
+    return recs

@@ -15,6 +15,8 @@ spotipy = "*"
 gunicorn = "*"
 psycopg2-binary = "*"
 pandas = "*"
+joblib = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
