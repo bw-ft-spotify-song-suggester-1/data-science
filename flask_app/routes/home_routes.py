@@ -1,6 +1,7 @@
 # web_app/routes/home_routes.py
 import gunicorn 
 import psycopg2
+import pandas as pd
 from flask import Blueprint, request, jsonify
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_app.services.spotify_service import spotify_api_client
@@ -41,9 +42,28 @@ def recs_from_id(id):
     
     return jsonify(recommendations)
 
-
 @home_routes.route("/recommendations/json", methods=['POST'])
 def recs_from_json():
+    """
+    Takes in a spotify track object from a POST request and returns a 
+    list of recommended tracks as a JSON object using the built-in spotipy 
+    recommendations method.
+    """
+
+    sp = spotify_api_client()
+
+    if not request.json:
+        return jsonify({"error": "no request received"})
+
+    input_track = request.get_json(force=True)
+
+    input_df = get_features(input_track)
+
+    return jsonify(recommendations)
+
+
+@home_routes.route("/recommendations/test/json", methods=['POST'])
+def recs_from_json_test():
     """
     Takes in a spotify track object from a POST request and returns a 
     list of recommended tracks as a JSON object using the built-in spotipy 
@@ -79,3 +99,42 @@ def audio_feat():
     results = sp.audio_features(tracks=tracky_uri)
     for r in results:
         return jsonify(r)
+
+
+# sample song id: 6rqhFgbbKwnb9MLmUQDhG6
+
+# get the model parameters for a given track
+def get_features(input_track):
+    """
+    Takes a JSON track object, and returns a dataframe containing the features
+    used in the ML model.
+    """
+
+    sp = spotify_api_client()
+
+    track_id = input_track['id']
+    audio_analysis = sp.audio_analysis(track_id)
+    audio_features = sp.audio_features(track_id)[0]
+
+    # Add info from Spotify API "audio_analysis" call:
+    # sections: # of sections in the song (Verse 1, Chorus 1, Bridge, etc.)
+    # chorus_hit: when the first chorus starts in the song (second mark in track)
+    sections = len(audio_analysis['sections'])
+    chorus_hit = audio_analysis['sections'][2]['start']
+    
+    # Create dictionary containing only the values we want from the audio features
+    keys = ["danceability" ,"energy" ,"key" ,"loudness" ,"mode" ,"speechiness" ,
+    "acousticness" ,"instrumentalness" ,"liveness" ,"valence" ,"tempo" ,
+    "duration_ms" ,"time_signature"]
+    features = {key: audio_features[key] for key in keys}
+
+    # add the audio analysis features
+    features["sections"] = sections
+    features["chorus_hit"] = chorus_hit
+
+    df = pd.DataFrame(features, index=[0])
+
+    return df
+
+#["danceability" ,"energy" ,"key" ,"loudness" ,"mode" ,"speechiness" ,"acousticness" ,"instrumentalness" ,"liveness" ,"valence" ,"tempo" ,"duration_ms" ,"time_signature"]
+
