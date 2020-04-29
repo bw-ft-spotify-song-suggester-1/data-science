@@ -17,5 +17,3 @@ def spotify_api_client():
 if __name__ == "__main__":
     sp = spotify_api_client()
     
-    
-    
