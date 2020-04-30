@@ -15,36 +15,6 @@ def index():
     return "Spotify song suggester"
 
 
-@home_routes.route("/recommendations/<id>")
-def recs_from_id(id):
-    """
-    Takes in a spotify song ID and returns a list of recommended tracks
-    as a JSON object using the built-in spotipy recommendations method.
-    """
-
-    # sample song id: 6rqhFgbbKwnb9MLmUQDhG6
-
-    sp = spotify_api_client()
-
-    # get the track object based on the input id
-    input_track = sp.track(id)
-
-    # get artist uri from the track object
-    artist_uri = input_track['artists'][0]['uri']
-
-    recommendations = sp.recommendations(seed_artist=[artist_uri], 
-        seed_tracks=[id])['tracks']
-
-    # # Enable code to print list of recommended tracks
-    # print('\n recommended tracks')
-    # i=1
-    # for item in recommendations:
-    #     print(i, item, '\n')
-    #     i+=1
-    
-    return jsonify(recommendations)
-
-
 @home_routes.route("/recommendations/json", methods=['POST'])
 def recs_from_json():
     """
@@ -67,10 +37,10 @@ def recs_from_json():
     print("\ninput track dataframe")
     print(input_df.head())
 
-    # Get recommendations
+    # Get recommendations. Will be a list of JSON track objects.
     recommendations = get_recommendations(input_df, input_track['uri'])
     
-    return jsonify(recommendations)
+    return recommendations
 
 
 @home_routes.route("/recommendations/test/json", methods=['POST'])
@@ -183,7 +153,9 @@ def get_40k_spotify_songs():
 
 def get_recommendations(track_df, track_uri):
     """
-    Given a pandas dataframe of track features, use 
+    Given a pandas dataframe of track features and associateed track uri,
+    use ML model to generate recommendations. 
+    Returns list of JSON track objects.
     """
     
     sp = spotify_api_client()
