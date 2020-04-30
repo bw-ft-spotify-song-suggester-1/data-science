@@ -31,7 +31,7 @@ You must also add Spotify API credentials. Either enter them using commands from
 For the POST request route (/recommendations/json), make sure the JSON uses double quotes. 
 
 # Contributions
-## Unit 3
+## Unit 3 - Data Engineers
 
-## Unit 4
+## Unit 4 - Machine Learning Engineers
 Adriann Lefebvere - Tested neural network architectures and created a working NearestNeighbor model for the flask app to use. Created instructions for the data engineers to use to help them get started with implementing the pickled model onto the flask app.
