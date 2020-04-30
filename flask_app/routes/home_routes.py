@@ -19,8 +19,7 @@ def index():
 def recs_from_json():
     """
     Takes in a spotify track object from a POST request and returns a 
-    list of recommended tracks as a JSON object using the built-in spotipy 
-    recommendations method.
+    list of recommended tracks as a JSON object using ML Model.
     """
 
     sp = spotify_api_client()
@@ -41,6 +40,62 @@ def recs_from_json():
     recommendations = get_recommendations(input_df, input_track['uri'])
     
     return recommendations
+
+@home_routes.route("/test/recommendations/json", methods=['POST'])
+def test_recs_from_json():
+    """
+    Takes in a spotify track object from a POST request and returns a 
+    list of recommended tracks as a JSON object using ML Model.
+    """
+
+    sp = spotify_api_client()
+
+    # Check if we got a json object. If we do, assign it to "input_track"
+    if not request.json:
+        return jsonify({"error": "no request received"})
+    
+    input_track = request.get_json(force=True)
+
+
+    #
+    # ALL THE PRINT STATEMENTS (pls work....)
+    #
+    print("\nHere are all the keys from the JSON object")
+    for item in input_track:
+        print(item)
+    
+    print("Here's the artist and name values")
+    print("\nArtist:", input_track['artist'])
+    print("Name:", input_track['name'])
+
+    print("\nChecking Type:", type(input_track))
+
+    print("printing all dictionary key-value pairs")
+    for item in input_track:
+        print("Key", item)
+        print("Value", input_track[item])
+
+    #
+    # hopefully this crap worked
+    #
+
+    input_track = {"id": "472McvAuBRHKhKUA0jrBUK", "uri":"spotify:artist:472McvAuBRHKhKUA0jrBUK" }
+
+    # Get the track features needed for the ML model
+    input_df = get_features(input_track)
+
+    print("\ninput track dataframe")
+    print(input_df.head())
+
+    # Get recommendations. Will be a list of JSON track objects.
+    recommendations = get_recommendations(input_df, input_track['uri'])
+    
+    print("recomendations list")
+    for item in recommendations:
+        print(item)
+
+    return jsonify(recommendations)
+
 
 @home_routes.route("/recommendations/<artist>/<name>")
 def recs_from_get(name, artist):
@@ -88,7 +143,8 @@ def recs_from_get(name, artist):
     # Get recommendations. Will be a list of JSON track objects.
     recommendations = get_recommendations(input_df, input_track['uri'])
     
-    return recommendations
+    return jsonify(recommendations)
+
 
 @home_routes.route("/recommendations/test/json", methods=['POST'])
 def recs_from_json_test():
@@ -128,16 +184,23 @@ def audio_feat():
     for r in results:
         return jsonify(r)
 
-@home_routes.route("/get_track/<id>")
-def get_track(id):
+
+@home_routes.route("/full_track/<id>")
+def full_track(id):
     """Get track object for a given track id"""
     sp = spotify_api_client()
     track = sp.track(id)
 
-    print_track_object(track)
-
     return track
 
+
+@home_routes.route("/basic_track/<id>")
+def basic_track(id):
+    """Get dictionary of basic track info for a given track id"""
+    sp = spotify_api_client()
+    track = sp.track(id)
+
+    return get_basic_track_info(track)
 
 
 def get_features(input_track):
@@ -225,6 +288,8 @@ def get_recommendations(track_df, track_uri):
     model_knn = load('model.joblib')
 
     # Get recommended songs from our model:
+    # ourput_uris is a list containing the index for each recommended song
+    # inside the database
     output_values, output_uris = model_knn.kneighbors(input_values_only)
     output_values = output_values[0]
     output_uris = output_uris[0]
@@ -232,25 +297,6 @@ def get_recommendations(track_df, track_uri):
     # List of Spotify URIs for the songs our model recommended
     # Checks if any recommended track is the same as the input track
     # (to query the Spotify API --> get their full track objects):
-
-    # TODO
-    """
-    figure out how to get to this info for each recommended track:
-
-    { 
-    name: "", (this is the song name)
-    uri: "",
-    artist: "",
-    album: "",
-    spotify_id: "",
-    popularity: (number from 0-100),
-    preview_url: "",
-    image: ""
-    }
-
-    append to our list of recommendations 
-    return list
-    """
 
     recs_uris = []
     for uri_index in output_uris:
@@ -263,13 +309,36 @@ def get_recommendations(track_df, track_uri):
             recs_uris.append(song_uri)
             print("uri", song_uri)
 
-    # Get JSON of the full Spotify API "track objects" for the songs:
-    recs = sp.tracks(recs_uris)
+    # Get JSON of the full Spotify API "track objects" for the songs
+    recs = sp.tracks(recs_uris)["tracks"]
+    
+    # Filter the results to have only relevant information for each track.
+    filtered_recs = []
+    for track in recs:
+        filtered_recs.append(get_output_values(track))
 
-    return recs
+    return filtered_recs
 
 
-def get_track_info(track):
+def get_output_values(track):
+    """
+    Given a track object, return a dictionary containing only the desired
+    output information to send to front end.
+    """
+    name = track["name"]
+    uri = track["uri"]
+    artist = track['artists'][0]['name']
+    album = track['album']['name']
+    spotify_id = track['id']
+    popularity = track['popularity']
+    preview_url = track['preview_url']
+    image = track['album']['images']
+
+    return {"name":name, "uri":uri, "artist":artist, "album":album, "spotify_id":spotify_id
+    , "popularity":popularity, "preview_url":preview_url, "image":image}
+
+
+def get_basic_track_info(track):
     """
     Given a track object, return a dictionary of track name, track artist,
     and album name. Used for testing and troubleshooting.
@@ -280,7 +349,11 @@ def get_track_info(track):
     name = track["name"]
     artist = track['artists'][0]['name']
     album = track['album']['name']
-    return {"name":name, "artist":artist, "album":album}
+    uri = track["uri"]
+    track_id = track['id']
+
+    return jsonify({"name":name, "artist":artist, "album":album, "uri":uri
+    , "id":track_id})
 
 
 def print_track_object(track):
@@ -288,18 +361,22 @@ def print_track_object(track):
     Given a track object, print its contents in a more readable format.
     Trouble shooting function. Does not return anything.
     """
-        
+    
     for key in track:
-        print("\nKEY:", key)
 
-        if isinstance(track[key], dict)==True:
-            for subkey in track[key]:
-                print("\tSUBKEY", subkey, "\t", track[key][subkey])
-
-        elif isinstance(track[key], list)==True:
-            for item in track[key]:
-                print("\tLIST_ITEM:\t", item)
-        
+        if key == "available_markets":
+            pass
         else:
-            print("\tENTRY:", track[key])
+            print("\nKEY:", key)
+
+            if isinstance(track[key], dict)==True:
+                for subkey in track[key]:
+                    print("\tSUBKEY", subkey, "\t", track[key][subkey])
+
+            elif isinstance(track[key], list)==True:
+                for item in track[key]:
+                    print("\tLIST_ITEM:\t", item)
+            
+            else:
+                print("\tENTRY:", track[key])
 
