@@ -113,19 +113,11 @@ def audio_feat():
 
 @home_routes.route("/get_track/<id>")
 def get_track(id):
-    """get track object for the given id"""
+    """Get track object for a given track id"""
     sp = spotify_api_client()
     track = sp.track(id)
 
-
-    # crap for looking at the format for track objects
-    for key in track:
-        print("\n", track)
-
-        if key.isint()==False:
-            for subkey in track[key]:
-                print(subkey)
-
+    print_track_object(track)
 
     return track
 
@@ -189,6 +181,10 @@ def get_40k_spotify_songs():
 
 
 def get_recommendations(track_df):
+    """
+    Given a pandas dataframe of track features, use 
+    """
+    
     sp = spotify_api_client()
 
     # Get dataset of Spotify songs for kNN:
@@ -241,3 +237,39 @@ def get_recommendations(track_df):
 
 
     return recs
+
+
+def get_track_info(track):
+    """
+    Given a track object, return a dictionary of track name, track artist,
+    and album name. Used for testing and troubleshooting.
+    """
+    # Remember that artist and album artist have different entries in the
+    # spotify track object.
+
+    name = track["name"]
+    artist = track['artists'][0]['name']
+    album = track['album']['name']
+    return {"name":name, "artist":artist, "album":album}
+
+
+def print_track_object(track):
+    """
+    Given a track object, print its contents in a more readable format.
+    Trouble shooting function. Does not return anything.
+    """
+        
+    for key in track:
+        print("\nKEY:", key)
+
+        if isinstance(track[key], dict)==True:
+            for subkey in track[key]:
+                print("\tSUBKEY", subkey, "\t", track[key][subkey])
+
+        elif isinstance(track[key], list)==True:
+            for item in track[key]:
+                print("\tLIST_ITEM:\t", item)
+        
+        else:
+            print("\tENTRY:", track[key])
+
