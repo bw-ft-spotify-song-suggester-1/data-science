@@ -42,6 +42,53 @@ def recs_from_json():
     
     return recommendations
 
+@home_routes.route("/recommendations/<artist>/<name>")
+def recs_from_get(name, artist):
+    """
+    Takes in an artist name and track name from a GET request and returns a 
+    list of recommended tracks as a JSON object using the built-in spotipy 
+    recommendations method.
+    """
+
+    sp = spotify_api_client()
+
+    # Use search query to get the track id
+    # This assumes that there is only one entry for a Artist + Song pair
+    
+    
+    # TODO
+    """
+    make sure query works for a given song + artist
+
+    Figure out the format of returned results from the query
+
+    Figure out how to get song uri from the query results
+
+    takee song uri, pass it into the function to convert to dataframe
+
+    throw into model
+
+    return results as a list of crap
+    """
+
+    input_track = sp.search(q='artist:' + artist + ' track:' + name,
+        type='track',limit=1)
+    
+    return input_track
+
+    for item in input_track:
+        print(item)
+
+    # Get the track features needed for the ML model
+    input_df = get_features(input_track)
+
+    print("\ninput track dataframe")
+    print(input_df.head())
+
+    # Get recommendations. Will be a list of JSON track objects.
+    recommendations = get_recommendations(input_df, input_track['uri'])
+    
+    return recommendations
 
 @home_routes.route("/recommendations/test/json", methods=['POST'])
 def recs_from_json_test():
@@ -109,7 +156,7 @@ def get_features(input_track):
     # chorus_hit: when the first chorus starts in the song (second mark in track)
     sections = len(audio_analysis['sections'])
     chorus_hit = audio_analysis['sections'][2]['start']
-    
+
     # Create dictionary containing only the values we want from the audio features
     keys = ["danceability" ,"energy" ,"key" ,"loudness" ,"mode" ,"speechiness" ,
     "acousticness" ,"instrumentalness" ,"liveness" ,"valence" ,"tempo" ,
@@ -184,6 +231,26 @@ def get_recommendations(track_df, track_uri):
     # List of Spotify URIs for the songs our model recommended
     # Checks if any recommended track is the same as the input track
     # (to query the Spotify API --> get their full track objects):
+
+    # TODO
+    """
+    figure out how to get to this info for each recommended track:
+
+    { 
+    name: "", (this is the song name)
+    uri: "",
+    artist: "",
+    album: "",
+    spotify_id: "",
+    popularity: (number from 0-100),
+    preview_url: "",
+    image: ""
+    }
+
+    append to our list of recommendations 
+    return list
+    """
+
     recs_uris = []
     for uri_index in output_uris:
         song_uri = spotify_songs_df_uris[uri_index]
