@@ -68,7 +68,7 @@ def recs_from_json():
     print(input_df.head())
 
     # Get recommendations
-    recommendations = get_recommendations(input_df)
+    recommendations = get_recommendations(input_df, input_track['uri'])
     
     return jsonify(recommendations)
 
@@ -120,6 +120,7 @@ def get_track(id):
     print_track_object(track)
 
     return track
+
 
 def get_features(input_track):
     """
@@ -180,7 +181,7 @@ def get_40k_spotify_songs():
     return spotify_songs_df, spotify_songs_df_uris
 
 
-def get_recommendations(track_df):
+def get_recommendations(track_df, track_uri):
     """
     Given a pandas dataframe of track features, use 
     """
@@ -209,32 +210,21 @@ def get_recommendations(track_df):
     output_uris = output_uris[0]
 
     # List of Spotify URIs for the songs our model recommended
+    # Checks if any recommended track is the same as the input track
     # (to query the Spotify API --> get their full track objects):
     recs_uris = []
-    for uri in output_uris:
-      recs_uris.append(spotify_songs_df_uris[uri])
-      print(spotify_songs_df_uris[uri])
-
-
-
-
-    """
-    DELETE THIS CRAPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
-    """
-    #   track_object=sp.track(uri)
-    #   track_object2=sp.audio_features(uri)
-    #   print("Artist", track_object['artists'][0]['name'])
-    #   print("Name", track_object2["name"])
-
-
+    for uri_index in output_uris:
+        song_uri = spotify_songs_df_uris[uri_index]
+        
+        if song_uri == track_uri:
+            pass
+        
+        else:
+            recs_uris.append(song_uri)
+            print("uri", song_uri)
 
     # Get JSON of the full Spotify API "track objects" for the songs:
     recs = sp.tracks(recs_uris)
-
-    #input_track_object = spotify.track(input_track_id)
-    #input_track_object['artists'][0]['name']
-
-
 
     return recs
 
