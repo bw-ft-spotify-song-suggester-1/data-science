@@ -35,3 +35,5 @@ For the POST request route (/recommendations/json), make sure the JSON uses doub
 
 ## Unit 4 - Machine Learning Engineers
 Adriann Lefebvere - Tested neural network architectures and created a working NearestNeighbor model for the flask app to use. Created instructions for the data engineers to use to help them get started with implementing the pickled model onto the flask app.
+
+Ryan Mecking - Tested and iterated ML and NN models to be pickled then implemented into flask app. 
