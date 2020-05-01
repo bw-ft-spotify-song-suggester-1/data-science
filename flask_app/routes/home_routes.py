@@ -250,14 +250,18 @@ def get_recommendations(track_df, track_uri):
         else:
             recs_uris.append(song_uri)
 
+    max_recs = 5
+    if len(recs_uris) > max_recs:
+        recs_uris.pop(-1)
+
     # Get JSON of the full Spotify API "track objects" for the songs
     recs = sp.tracks(recs_uris)["tracks"]
-    
+
     # Filter the results to have only relevant information for each track.
     filtered_recs = []
     for track in recs:
         filtered_recs.append(get_output_values(track))
-
+    print(len(filtered_recs))
     return filtered_recs
 
 
