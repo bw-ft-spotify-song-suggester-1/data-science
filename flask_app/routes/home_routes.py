@@ -40,6 +40,8 @@ def recs_from_basic_json():
     search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track',limit=10)
     search_results = search_results['tracks']['items']
 
+    print(search_results)
+
     # Now we need to check for exact matches
     # This removes "Live" and "Concert" versions
     # Multiple tracks in the list indicates a track was on multiple albums
@@ -55,12 +57,19 @@ def recs_from_basic_json():
 
         if name == track_name and artist == artist_name:
             matches.append(track_info)
+        
         else:
             pass
     
-    # If we have no matches, return an error
+    # If we have no exact matches check to see if the spotify query returned
+    # any results. If yes, use the first query result. Else, return an error
     if len(matches) == 0:
-        return jsonify({"error": "track not found."})
+
+        if len(search_results) != 0:
+            model_input_track = get_basic_track_info(search_results[0])
+
+        else:
+            return jsonify({"error": "track not found."})
     
     # Else, use the first match to make recommendations
     else:
