@@ -261,7 +261,7 @@ def get_recommendations(track_df, track_uri):
     filtered_recs = []
     for track in recs:
         filtered_recs.append(get_output_values(track))
-    print(len(filtered_recs))
+
     return filtered_recs
 
 
