@@ -19,7 +19,7 @@ def index():
 @home_routes.route("/recommendations/json", methods=['POST'])
 def recs_from_basic_json():
     """
-    Takes in a JSON object containing track name and artist name from a 
+    Takes in a JSON string containing track name and artist name from a 
     POST request and returns a list of recommended tracks as a JSON object 
     using an ML Model.
     """
@@ -37,7 +37,7 @@ def recs_from_basic_json():
     
     # Query spotify for tracks that match artist and track
     # https://developer.spotify.com/documentation/web-api/reference/search/search/
-    search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track',limit=10)
+    search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track', limit=10)
     search_results = search_results['tracks']['items']
 
     # Now we need to check for exact matches
@@ -296,8 +296,8 @@ def get_output_values(track):
 
 def get_basic_track_info(track):
     """
-    Given a track object, return a dictionary of track name, track artist,
-    and album name. 
+    Given a track object, return a dictionary of track name, artist name,
+    album name, track uri, and track id. 
     """
     # Remember that artist and album artist have different entries in the
     # spotify track object.
