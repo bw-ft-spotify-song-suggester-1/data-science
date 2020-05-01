@@ -11,17 +11,15 @@ Designed to fetch data from the Spotify API https://developer.spotify.com/docume
 Clone the data science repo into your local machine using https://github.com/bw-ft-spotify-song-suggester-1/data-science.git
 
 Install pipenv with the following packages:
-* python-dotenv 
-* Requests
-* Flask
-* Flask-SQLAlchemy
-* Flask-Migrate
+* flask
 * gunicorn
-* spotipy
-* psycopg2-binary
-* pandas
 * joblib
+* pandas
+* psycopg2-binary
+* python-dotenv 
+* requests
 * sklearn
+* spotipy
 
 ## Setup
 Create a .env file to store the Spotify Api Client ID and the Client Secret.

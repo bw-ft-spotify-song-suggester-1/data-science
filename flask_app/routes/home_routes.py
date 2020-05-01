@@ -1,10 +1,11 @@
 # web_app/routes/home_routes.py
-import gunicorn 
-import psycopg2
-import pandas as pd
+
 from flask import Blueprint, request, jsonify
 from spotipy.oauth2 import SpotifyClientCredentials
 from flask_app.services.spotify_service import spotify_api_client
+import gunicorn 
+import psycopg2
+import pandas as pd
 from joblib import dump, load
 from sklearn import preprocessing
 
