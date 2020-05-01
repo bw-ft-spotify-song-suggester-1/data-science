@@ -12,13 +12,72 @@ home_routes = Blueprint("home_routes", __name__)
 
 @home_routes.route("/")
 def index():
-    return "Spotify song suggester"
+    return "Welcome to our Spotify Song Suggester!"
+
+
+@home_routes.route("/recommendations/json", methods=['POST'])
+def recs_from_basic_json():
+    """
+    Takes in a JSON object containing track name and artist name from a 
+    POST request and returns a list of recommended tracks as a JSON object 
+    using an ML Model.
+    """
+
+    sp = spotify_api_client()
+
+    # Check if we got a json object. If we do, assign it to "input_track".
+    if not request.json:
+        return jsonify({"error": "no request received"})
+    
+    input_track = request.get_json(force=True)
+
+    artist = input_track['artist'].lower()
+    name = input_track['name'].lower()
+    
+    # Query spotify for tracks that match artist and track
+    # https://developer.spotify.com/documentation/web-api/reference/search/search/
+    search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track',limit=10)
+    search_results = search_results['tracks']['items']
+
+    # Now we need to check for exact matches
+    # This removes "Live" and "Concert" versions
+    # Multiple tracks in the list indicates a track was on multiple albums
+    matches = []
+    for track in search_results:
+        
+        # Get the track name, artist, album, uri, and id
+        track_info = get_basic_track_info(track)
+
+        # Get lowercase versions of track name and artist name        
+        track_name = track_info["name"].lower()
+        artist_name = track_info["artist"].lower()
+
+        if name == track_name and artist == artist_name:
+            matches.append(track_info)
+        else:
+            pass
+    
+    # If we have no matches, return an error
+    if len(matches) == 0:
+        return jsonify({"error": "track not found."})
+    
+    # Else, use the first match to make recommendations
+    else:
+        model_input_track = matches[0]
+    
+    # Get the track features needed for the ML model
+    input_df = get_features(model_input_track)
+
+    # Get recommendations. Will be a list of JSON track objects.
+    recommendations = get_recommendations(input_df, model_input_track['uri'])
+
+    return jsonify(recommendations)
 
 
 @home_routes.route("/recommendations/json/full", methods=['POST'])
 def recs_from_full_json():
     """
-    Takes in a spotify track object from a POST request and returns a 
+    Takes in a spotify track JSON object from a POST request and returns a 
     list of recommended tracks as a JSON object using an ML Model.
     """
 
@@ -33,190 +92,19 @@ def recs_from_full_json():
     # Get the track features needed for the ML model
     input_df = get_features(input_track)
 
-    print("\ninput track dataframe")
-    print(input_df.head())
-
     # Get recommendations. Will be a list of JSON track objects.
     recommendations = get_recommendations(input_df, input_track['uri'])
     
     return recommendations
 
 
-@home_routes.route("/test/recommendations/json", methods=['POST'])
-def test_recs_from_basic_json():
+@home_routes.route("/recommendations/builtin/json", methods=['POST'])
+def recs_from_json_builtin():
     """
     Takes in a spotify track object from a POST request and returns a 
-    list of recommended tracks as a JSON object using ML Model.
-    """
-
-    sp = spotify_api_client()
-
-    # Check if we got a json object. If we do, assign it to "input_track"
-    if not request.json:
-        return jsonify({"error": "no request received"})
-    
-    input_track = request.get_json(force=True)
-
-
-    #
-    # ALL THE PRINT STATEMENTS (pls work....)
-    #
-    print("\nHere are all the keys from the JSON object")
-    for item in input_track:
-        print(item)
-    
-    print("Here's the artist and name values")
-    print("\nArtist:", input_track['artist'])
-    print("Name:", input_track['name'])
-
-    print("\nChecking Type:", type(input_track))
-
-    print("printing all dictionary key-value pairs")
-    for item in input_track:
-        print("Key", item)
-        print("Value", input_track[item])
-
-    #
-    # hopefully this crap worked
-    #
-
-    input_track = {"id": "472McvAuBRHKhKUA0jrBUK", "uri":"spotify:artist:472McvAuBRHKhKUA0jrBUK" }
-
-    # Get the track features needed for the ML model
-    input_df = get_features(input_track)
-
-    print("\ninput track dataframe")
-    print(input_df.head())
-
-    # Get recommendations. Will be a list of JSON track objects.
-    recommendations = get_recommendations(input_df, input_track['uri'])
-    
-    print("recomendations list")
-    for item in recommendations:
-        print(item)
-
-    return jsonify(recommendations)
-
-@home_routes.route("/recommendations/json", methods=['POST'])
-def recs_from_basic_json():
-    """
-    Takes in a JSON object containing track name and artist name from a 
-    POST request and returns a list of recommended tracks as a JSON object 
-    using an ML Model.
-    """
-
-    sp = spotify_api_client()
-
-    # Check if we got a json object. If we do, assign it to "input_track"
-    if not request.json:
-        return jsonify({"error": "no request received"})
-    
-    input_track = request.get_json(force=True)
-
-    artist = input_track['artist'].lower()
-    name = input_track['name'].lower()
-    
-    # query spotify for tracks that match artist and track
-    search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track',limit=10)
-    search_results = search_results['tracks']['items']
-
-    # now we need to check for exact matches
-    # this removees "Live" and "Concert" versions
-    matches = []
-    for track in search_results:
-        
-        # get the track name, artist, album, uri, and id
-        track_info = get_basic_track_info(track)
-
-        # get lowercase versions of track name and artist name        
-        track_name = track_info["name"].lower()
-        artist_name = track_info["artist"].lower()
-
-        if name == track_name and artist == artist_name:
-            matches.append(track_info)
-        else:
-            pass
-    
-    # if we have no matches, return an error
-    if len(matches) == 0:
-        return jsonify({"error": "track not found."})
-    
-    # else, use the first match to make recommendations
-    else:
-        model_input_track = matches[0]
-        # print("\n", model_input_track)
-        # for key in model_input_track:
-        #     print("Key", key)
-    
-    # need id and uri for recommendation engine
-    # Get the track features needed for the ML model
-    input_df = get_features(model_input_track)
-    print("\ninput track dataframe")
-    print(input_df.head())
-
-    # Get recommendations. Will be a list of JSON track objects.
-    recommendations = get_recommendations(input_df, model_input_track['uri'])
-
-    return jsonify(recommendations)
-
-
-@home_routes.route("/recommendations/<artist>/<name>")
-def recs_from_get(name, artist):
-    """
-    Takes in an artist name and track name from a GET request and returns a 
-    list of recommended tracks as a JSON object using the built-in spotipy 
+    list of recommended tracks as a JSON object using the built-in spotify 
     recommendations method.
     """
-
-    sp = spotify_api_client()
-
-    # Use search query to get the track id
-    # This assumes that there is only one entry for a Artist + Song pair
-    
-    
-    # TODO
-    """
-    make sure query works for a given song + artist
-
-    Figure out the format of returned results from the query
-
-    Figure out how to get song uri from the query results
-
-    takee song uri, pass it into the function to convert to dataframe
-
-    throw into model
-
-    return results as a list of crap
-    """
-
-    input_track = sp.search(q='artist:' + artist + ' track:' + name,
-        type='track',limit=1)
-    
-    return input_track
-
-    for item in input_track:
-        print(item)
-
-    # Get the track features needed for the ML model
-    input_df = get_features(input_track)
-
-    print("\ninput track dataframe")
-    print(input_df.head())
-
-    # Get recommendations. Will be a list of JSON track objects.
-    recommendations = get_recommendations(input_df, input_track['uri'])
-    
-    return jsonify(recommendations)
-
-
-@home_routes.route("/recommendations/test/json", methods=['POST'])
-def recs_from_json_test():
-    """
-    Takes in a spotify track object from a POST request and returns a 
-    list of recommended tracks as a JSON object using the built-in spotipy 
-    recommendations method.
-    """
-
     sp = spotify_api_client()
 
     if not request.json:
@@ -235,22 +123,9 @@ def recs_from_json_test():
     return jsonify(recommendations)
 
 
-@home_routes.route("/audio-features")
-def audio_feat():
-    """
-    Get audio features for a given track uri.
-    """
-
-    sp = spotify_api_client()
-    tracky_uri = 'spotify:track:6MjiVEJy1YVuJNFu72OH61'
-    results = sp.audio_features(tracks=tracky_uri)
-    for r in results:
-        return jsonify(r)
-
-
 @home_routes.route("/full_track/<id>")
 def full_track(id):
-    """Get track object for a given track id"""
+    """Get spotify track JSON object for a given track id"""
     sp = spotify_api_client()
     track = sp.track(id)
 
@@ -268,17 +143,19 @@ def basic_track(id):
 
 def get_features(input_track):
     """
-    Takes a JSON track object, and returns a dataframe containing the features
-    used in the ML model.
+    Takes a JSON object or dictionary containing a track id, and returns a 
+    dataframe containing the features used in the ML model.
     """
 
     sp = spotify_api_client()
 
     track_id = input_track['id']
+
+    # get the audio analysis and audio features for the track
     audio_analysis = sp.audio_analysis(track_id)
     audio_features = sp.audio_features(track_id)[0]
 
-    # Add info from Spotify API "audio_analysis" call:
+    # Get sections and chorus_hit features from the audio analysis
     # sections: # of sections in the song (Verse 1, Chorus 1, Bridge, etc.)
     # chorus_hit: when the first chorus starts in the song (second mark in track)
     sections = len(audio_analysis['sections'])
@@ -290,7 +167,7 @@ def get_features(input_track):
     "duration_ms" ,"time_signature"]
     features = {key: audio_features[key] for key in keys}
 
-    # add the audio analysis features
+    # add the audio analysis features to the dictionary
     features["chorus_hit"] = chorus_hit
     features["sections"] = sections
 
@@ -314,12 +191,16 @@ def get_40k_spotify_songs():
     dataset80 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5LNcY8trkxu8vIJHf8Ha0vDO9Xz2k2M7UCdEGhaJxz9vnB_SqET9fy88icZwIjPKeK8USi05_0zii/pub?output=csv')
     dataset90 = pd.read_csv(r'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFUiB5RX_2qMQuZSuP-u_wQvjqlaSOTeKY4uGjwfeoGTgZUCesq46xlYjLqi4vmN-VQ4zK0Zm-jXmw/pub?output=csv')
 
+    # Combine dataframes
     frames = [dataset60, dataset70, dataset80, dataset90, dataset00, dataset10]
     spotify_songs_df = pd.concat(frames, ignore_index=True)
 
+    # Drop the target column and drop duplicates
     spotify_songs_df = spotify_songs_df.drop(['target'], axis=1)
     spotify_songs_df = spotify_songs_df.drop_duplicates("uri")
 
+    # Create new dataframe with only the uri column
+    # Will be used to find the song uri for a given index
     spotify_songs_df_uris = spotify_songs_df['uri']
 
     return spotify_songs_df, spotify_songs_df_uris
@@ -344,14 +225,14 @@ def get_recommendations(track_df, track_uri):
     # Array of only the values of input_track_df_ordered:
     input_values_only = track_df.loc[0].values
 
-    # # Standardize (z-scores) our input values before inputting into model:
+    # Standardize (z-scores) our input values before inputting into model:
     input_values_only = scaler.transform([input_values_only])
 
     # Load our ML model from compressed joblib file:
     model_knn = load('model.joblib')
 
     # Get recommended songs from our model:
-    # ourput_uris is a list containing the index for each recommended song
+    # Output_uris is a list containing the index for each recommended song
     # inside the database
     output_values, output_uris = model_knn.kneighbors(input_values_only)
     output_values = output_values[0]
@@ -359,8 +240,6 @@ def get_recommendations(track_df, track_uri):
 
     # List of Spotify URIs for the songs our model recommended
     # Checks if any recommended track is the same as the input track
-    # (to query the Spotify API --> get their full track objects):
-
     recs_uris = []
     for uri_index in output_uris:
         song_uri = spotify_songs_df_uris[uri_index]
@@ -370,7 +249,6 @@ def get_recommendations(track_df, track_uri):
         
         else:
             recs_uris.append(song_uri)
-            print("uri", song_uri)
 
     # Get JSON of the full Spotify API "track objects" for the songs
     recs = sp.tracks(recs_uris)["tracks"]
@@ -396,9 +274,12 @@ def get_output_values(track):
     popularity = track['popularity']
     preview_url = track['preview_url']
     image = track['album']['images']
+    
+    output = {"name":name, "uri":uri, "artist":artist, "album":album
+    , "spotify_id":spotify_id, "popularity":popularity
+    , "preview_url":preview_url, "image":image}
 
-    return {"name":name, "uri":uri, "artist":artist, "album":album, "spotify_id":spotify_id
-    , "popularity":popularity, "preview_url":preview_url, "image":image}
+    return output
 
 
 def get_basic_track_info(track):
@@ -415,8 +296,10 @@ def get_basic_track_info(track):
     uri = track["uri"]
     track_id = track['id']
 
-    return {"name":name, "artist":artist, "album":album, "uri":uri
+    output = {"name":name, "artist":artist, "album":album, "uri":uri
     , "id":track_id}
+
+    return output
 
 
 def print_track_object(track):

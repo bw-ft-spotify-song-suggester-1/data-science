@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CID = os.getenv("Client_ID")
-SECRET = os.getenv("Client_Secret")
+CID = os.getenv("CLIENT_ID")
+SECRET = os.getenv("CLIENT_SECRET")
 
 def spotify_api_client():
     client_credentials_manager = SpotifyClientCredentials(client_id=CID, client_secret=SECRET)
