@@ -40,8 +40,6 @@ def recs_from_basic_json():
     search_results = sp.search(q='artist:' + artist + ' track:' + name, type='track',limit=10)
     search_results = search_results['tracks']['items']
 
-    print(search_results)
-
     # Now we need to check for exact matches
     # This removes "Live" and "Concert" versions
     # Multiple tracks in the list indicates a track was on multiple albums
