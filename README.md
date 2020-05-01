@@ -2,7 +2,6 @@
 
 ## Spotify song suggester 
 Model - K-Nearest Neighbors 
-Wrapper - Spotipy - https://spotipy.readthedocs.io/en/2.12.0/
 
 # Flask App 
 Designed to fetch data from the Spotify API https://developer.spotify.com/documentation/web-api/reference/ and send JSON to web app.
