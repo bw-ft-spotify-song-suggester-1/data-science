@@ -34,7 +34,7 @@ For the POST request routes, using single quotes for the input JSON objects may 
 
 # Contributions
 ## Unit 3 - Data Engineers
-Adewale Adeagbo - Implemented flask app architecture; and specified neccessary Spotify API endpoints.Tested and wrote reproducible scripts for routes/API relevant to data science functionality. Implemented pickled NN model. Documented web app product vision. 
+Adewale Adeagbo - Implemented flask app architecture; and specified neccessary Spotify API endpoints.Tested and wrote reproducible scripts for POST and GET routes/API relevant to data science functionality. Implemented pickled NN model and translated data formats for recommendation engine. Documented web app product vision. 
 
 Harrison Kang - Implemented flask app archirecture. Set up multiple app routes to handle GET and POST requests with different data objects. Deployed app to Heroku cloud platform. Integrated ML model into flask app. Implemented a data pipeline to take song information in various formats, generate recommendations, and output them to the front end in an appropriate format.
 
